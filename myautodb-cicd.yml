@@ -1,0 +1,41 @@
+name: ADB CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  lint-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install sqlfluff for Linting
+        run: pip install sqlfluff
+
+      - name: Lint SQL Files
+        run: sqlfluff lint *.sql --dialect oracle || echo "Lint complete"
+
+      - name: Install Instant Client & SQLcl
+        run: |
+          wget https://download.oracle.com/otn_software/linux/instantclient/2370000/instantclient-basiclite-linux.x64-23.7.0.24.07.zip
+          unzip instantclient-basiclite-linux.x64-23.7.0.24.07.zip
+          wget https://download.oracle.com/otn_software/java/sqlcl/sqlcl-23.4.0.24.07.zip
+          unzip sqlcl-23.4.0.24.07.zip
+          export PATH=$PWD/instantclient_23_7:$PWD/sqlcl/bin:$PATH
+
+      - name: Decode and Unzip Wallet
+        run: |
+          echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
+          unzip wallet.zip -d wallet
+
+      - name: Deploy Schema Script
+        run: |
+          echo "$$   {{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"   $${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @schema.sql ?TNS_ADMIN=wallet
+
+      - name: Run Smoke Test
+        run: |
+          echo "$$   {{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"   $${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @test.sql ?TNS_ADMIN=wallet > test_output.txt
+          cat test_output.txt
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf wallet* *.zip
