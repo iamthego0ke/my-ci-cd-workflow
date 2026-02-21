@@ -3,5 +3,6 @@ CREATE TABLE customers (
     name VARCHAR2(100),
     created DATE DEFAULT SYSDATE
 );
-INSERT INTO customers (id, name) VALUES (1, 'Test User');
+INSERT INTO customers (name) VALUES ('Test User');
+INSERT INTO customers (name) VALUES ('Test User2');
 COMMIT;
