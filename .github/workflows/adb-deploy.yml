@@ -1,45 +1,40 @@
-name: Oracle Autonomous DB CI/CD Pipeline
+name: Oracle Autonomous DB CI/CD Pipeline (19c Client)
 
 on:
-  push:
-    branches: [ test-sql-cmds-with-cicd-pipeline ]
-  pull_request:
-    branches: [ test-sql-cmds-with-cicd-pipeline ]
-  workflow_dispatch:  # Allows manual trigger from Actions tab
+  push: 
+  pull_request: 
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout your repository code
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Step 2: Install sqlfluff for SQL linting
       - name: Install sqlfluff (SQL linter)
         run: pip install sqlfluff
 
-      # Step 3: Lint all .sql files in the repo
       - name: Lint SQL files
-        run: sqlfluff lint *.sql --dialect oracle || echo "Lint complete (warnings OK for learning)"
+        run: sqlfluff lint *.sql --dialect oracle || echo "Lint complete (warnings OK)"
 
-      # Step 4: Install Oracle Instant Client & SQLcl (command-line tool)
-      - name: Install Oracle Instant Client & SQLcl
+      - name: Install Oracle Instant Client 19c & SQLcl
         run: |
-          wget https://download.oracle.com/otn_software/linux/instantclient/2370000/instantclient-basiclite-linux.x64-23.7.0.24.07.zip
-          unzip instantclient-basiclite-linux.x64-23.7.0.24.07.zip
-          wget https://download.oracle.com/otn_software/java/sqlcl/sqlcl-23.4.0.24.07.zip
-          unzip sqlcl-23.4.0.24.07.zip
-          export PATH=$PWD/instantclient_23_7:$PWD/sqlcl/bin:$PATH
+          # Download Instant Client Basic Light 19.24 (long-term support, stable for ADB)
+          curl -o instantclient.zip https://download.oracle.com/otn_software/linux/instantclient/1924000/instantclient-basiclite-linux.x64-19.24.0.0.0dbru.zip
+          unzip instantclient.zip
+          # Download SQLcl 19.4 (compatible with 19c client)
+          curl -o sqlcl.zip https://download.oracle.com/otn_software/java/sqlcl/sqlcl-19.4.0.zip
+          unzip sqlcl.zip
+          # Set PATH correctly for 19c
+          export LD_LIBRARY_PATH=$PWD/instantclient_19_24:$LD_LIBRARY_PATH
+          export PATH=$PWD/instantclient_19_24:$PWD/sqlcl/bin:$PATH
 
-      # Step 5: Decode and extract the wallet from GitHub secret
       - name: Decode and unzip ADB wallet
         run: |
           echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
           unzip wallet.zip -d wallet
 
-      # Step 6: Deploy schema (run your SQL script against ADB)
       - name: Deploy schema to Autonomous Database
         env:
           CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
@@ -47,7 +42,6 @@ jobs:
         run: |
           echo "${{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @schema.sql ?TNS_ADMIN=wallet
 
-      # Step 7: Run a simple smoke test (verify table exists)
       - name: Smoke test - Check table count
         env:
           CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
@@ -56,7 +50,6 @@ jobs:
           echo "${{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @test.sql ?TNS_ADMIN=wallet > test_output.txt
           cat test_output.txt
 
-      # Step 8: Cleanup (always run, even if failed)
-      - name: Cleanup temporary files
+      - name: Cleanup
         if: always()
-        run: rm -rf wallet* *.zip
+        run: rm -rf wallet* *.zip instantclient* sqlcl*
