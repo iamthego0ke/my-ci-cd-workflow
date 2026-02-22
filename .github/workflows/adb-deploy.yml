@@ -22,7 +22,7 @@ jobs:
         run: |
           curl -L -o instantclient.zip https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
-          curl -L -H "User-Agent: Mozilla/5.0" -o sqlcl.zip https://download.oracle.com/otn_software/java/sqlcl/sqlcl-24.1.0.zip
+          curl -L -H "User-Agent: Mozilla/5.0 (Windows nt 10.0; Win64; x64)" -o sqlcl.zip https://download.oracle.com/otn_software/java/sqlcl/sqlcl-24.1.0.zip
           unzip sqlcl.zip
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
