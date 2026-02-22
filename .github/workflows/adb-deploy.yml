@@ -66,7 +66,7 @@ jobs:
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
           export TNS_ADMIN=$PWD/wallet
 
-          sql -S admin/"$ADMIN_PASSWORD"@"$CONNECTION_STRING" ddl-and-dml-for-ci-cd.sql
+          sql -S admin/"$ADMIN_PASSWORD"@"$CONNECTION_STRING" ddl.sql
 
       # -------------------------------
       # Smoke Test
