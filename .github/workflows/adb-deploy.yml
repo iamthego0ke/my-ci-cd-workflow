@@ -1,4 +1,4 @@
-name: Oracle Autonomous DB CI/CD Pipeline (19c Client)
+name: Oracle Autonomous DB CI/CD Pipeline (19c Client - Fix 1)
 
 on:
   push:
@@ -20,19 +20,28 @@ jobs:
 
       - name: Install Oracle Instant Client 19c & SQLcl
         run: |
-          curl -L -o instantclient.zip https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
+          # Instant Client 19.22 Basic Lite
+          curl -L -o instantclient.zip \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Accept: application/zip" \
+            https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
+
+          # SQLcl - latest alias + full browser-like headers
           curl -L -o sqlcl.zip \
-          -H "User-Agent: Mozilla/5.0 (Windows nt 10.0; Win64; x64) AppleWebKit/537.36" \
-          -H "Accept: applicaytion/zip" \
-          -H "Referer: https://www.oracle.com/database/technologies/appdev/sqlcl.html" \
-           https://download.oracle.com/otn_software/java/sqlcl/sqlcl-24.1.0.zip
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Accept: application/zip" \
+            -H "Referer: https://www.oracle.com/database/technologies/appdev/sqlcl.html" \
+            -H "Accept-Language: en-US,en;q=0.9" \
+            https://download.oracle.com/otn_software/java/sqlcl/sqlcl-latest.zip
           unzip sqlcl.zip
+
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
-          #Debug: Verify tools
-          ls -l instantclient_19_22
-          sql -v   # Print SQLcl version for debug
+
+          # Debug checks
+          ls -lh sqlcl.zip
+          sql -v
 
       - name: Decode and unzip ADB wallet
         run: |
