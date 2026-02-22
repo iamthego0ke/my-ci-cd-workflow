@@ -49,11 +49,8 @@ jobs:
       - name: Decode ADB wallet
         run: |
           set -e
-          echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
-          file wallet.zip
-          ls -lh wallet.zip
-          
-          unzip wallet.zip -d wallet
+          echo "${{ secrets.ADB_WALLET_BASE64 }}" | tr -d '\r\n ' base64 -d > wallet.zip
+          unzip -o wallet.zip -d wallet
 
       # -------------------------------
       # Deploy Schema
