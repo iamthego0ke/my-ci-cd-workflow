@@ -1,4 +1,4 @@
-name: Oracle Autonomous DB CI/CD Pipeline (19c Client - Fix 1)
+name: Oracle Autonomous DB CI/CD Pipeline (19c Client - Fix 2 Fallback)
 
 on:
   push:
@@ -18,28 +18,24 @@ jobs:
       - name: Lint SQL files
         run: sqlfluff lint *.sql --dialect oracle || echo "Lint complete (warnings OK)"
 
-      - name: Install Oracle Instant Client 19c & SQLcl
+      - name: Install Oracle Instant Client 19c & SQLcl (Fallback 19.4)
         run: |
           # Instant Client 19.22 Basic Lite
           curl -L -o instantclient.zip \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-            -H "Accept: application/zip" \
+            -H "User-Agent: Mozilla/5.0" \
             https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
 
-          # SQLcl - latest alias + full browser-like headers
+          # SQLcl 19.4 - direct link (very reliable in CI)
           curl -L -o sqlcl.zip \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-            -H "Accept: application/zip" \
-            -H "Referer: https://www.oracle.com/database/technologies/appdev/sqlcl.html" \
-            -H "Accept-Language: en-US,en;q=0.9" \
-            https://download.oracle.com/otn_software/java/sqlcl/sqlcl-latest.zip
+            -H "User-Agent: Mozilla/5.0" \
+            https://download.oracle.com/otn_software/java/sqlcl/sqlcl-19.4.0.zip
           unzip sqlcl.zip
 
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
 
-          # Debug checks
+          # Debug
           ls -lh sqlcl.zip
           sql -v
 
