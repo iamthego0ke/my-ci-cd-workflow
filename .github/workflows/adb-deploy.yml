@@ -1,4 +1,4 @@
-name: Oracle Autonomous DB CI/CD Pipeline (19c Client - Mirror Fix)
+name: Oracle Autonomous DB CI/CD Pipeline (19c Client - Fixed)
 
 on:
   push:
@@ -12,50 +12,82 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install sqlfluff (SQL linter)
+      # -------------------------------
+      # SQL Lint
+      # -------------------------------
+      - name: Install sqlfluff
         run: pip install sqlfluff
 
       - name: Lint SQL files
-        run: sqlfluff lint *.sql --dialect oracle || echo "Lint complete (warnings OK)"
+        run: sqlfluff lint *.sql --dialect oracle || echo "Lint warnings allowed"
 
-      - name: Install Oracle Instant Client 19c & SQLcl (Mirror Fix)
+      # -------------------------------
+      # Install Oracle Client + SQLcl
+      # -------------------------------
+      - name: Install Oracle Instant Client & SQLcl
         run: |
+          set -e
+
+          # Instant Client 19c
           curl -L -o instantclient.zip \
             https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
 
-          # CORRECTED: Swapped broken link for official Oracle SQLcl latest link
+          # SQLcl (official latest)
           curl -L -o sqlcl.zip \
-            https://download.oracle.com/otn_software/java/sqldev/sqlcl-latest.zip
+            https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip
           unzip sqlcl.zip
 
-          # CORRECTED: Using GITHUB_ENV so the path persists to the 'Deploy' and 'Smoke test' steps
-          echo "LD_LIBRARY_PATH=$PWD/instantclient_19_22" >> $GITHUB_ENV
-          echo "PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH" >> $GITHUB_ENV
+          export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
+          export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
 
-          ls -lh sqlcl.zip
-          ./sqlcl/bin/sql -v
+          sql -v
 
-      - name: Decode and unzip ADB wallet
+      # -------------------------------
+      # Decode Wallet
+      # -------------------------------
+      - name: Decode ADB wallet
         run: |
+          set -e
           echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
           unzip wallet.zip -d wallet
 
-      - name: Deploy schema to Autonomous Database
+      # -------------------------------
+      # Deploy Schema
+      # -------------------------------
+      - name: Deploy schema
         env:
           CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
           ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
         run: |
-          echo "${{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @schema.sql ?TNS_ADMIN=wallet
+          set -e
 
-      - name: Smoke test - Check table count
+          export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
+          export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
+          export TNS_ADMIN=$PWD/wallet
+
+          sql -S admin/"$ADMIN_PASSWORD"@"$CONNECTION_STRING" @schema.sql
+
+      # -------------------------------
+      # Smoke Test
+      # -------------------------------
+      - name: Smoke test
         env:
           CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
           ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
         run: |
-          echo "${{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @test.sql ?TNS_ADMIN=wallet > test_output.txt
+          set -e
+
+          export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
+          export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
+          export TNS_ADMIN=$PWD/wallet
+
+          sql -S admin/"$ADMIN_PASSWORD"@"$CONNECTION_STRING" @test.sql > test_output.txt
           cat test_output.txt
 
+      # -------------------------------
+      # Cleanup
+      # -------------------------------
       - name: Cleanup
         if: always()
         run: rm -rf wallet* *.zip instantclient* sqlcl*
