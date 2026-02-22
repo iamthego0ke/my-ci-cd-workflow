@@ -1,7 +1,8 @@
-name: Oracle Autonomous DB CI/CD Pipeline (19c Client - Mirror Fix)
+name: Oracle Autonomous DB CI/CD Pipeline (Fixed)
 
 on:
   push:
+    branches: [ main ]
   pull_request:
   workflow_dispatch:
 
@@ -10,29 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Install sqlfluff (SQL linter)
+      - name: Install SQLfluff (SQL linter)
         run: pip install sqlfluff
 
       - name: Lint SQL files
         run: sqlfluff lint *.sql --dialect oracle || echo "Lint complete (warnings OK)"
 
-      - name: Install Oracle Instant Client 19c & SQLcl (Mirror Fix)
+      - name: Install Oracle Instant Client & SQLcl
         run: |
-          curl -L -o instantclient.zip \
-            https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
+          # Download and unzip Instant Client 19.22
+          curl -L -o instantclient.zip https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
-
-          curl -L -o sqlcl.zip \
-            https://oracle.github.io/sqlcl/static/sqlcl-19.4.0.zip
+          
+          # Download and unzip Latest SQLcl (Official Oracle Link)
+          curl -L -o sqlcl.zip https://download.oracle.com/otn_software/java/sqldev/sqlcl-latest.zip
           unzip sqlcl.zip
 
-          export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
-          export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
+          # Persist paths for subsequent steps
+          echo "LD_LIBRARY_PATH=$PWD/instantclient_19_22" >> $GITHUB_ENV
+          echo "PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH" >> $GITHUB_ENV
 
-          ls -lh sqlcl.zip
-          sql -v
+      - name: Verify SQLcl Installation
+        run: sql -v
 
       - name: Decode and unzip ADB wallet
         run: |
@@ -44,14 +47,17 @@ jobs:
           CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
           ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
         run: |
-          echo "${{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @schema.sql ?TNS_ADMIN=wallet
+          # Using TNS_ADMIN environment variable pointing to the absolute path of the wallet
+          export TNS_ADMIN=$PWD/wallet
+          echo "exit" | sql -S admin/"${ADMIN_PASSWORD}"@"${CONNECTION_STRING}" @schema.sql
 
       - name: Smoke test - Check table count
         env:
           CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
           ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
         run: |
-          echo "${{ secrets.ADB_ADMIN_PASSWORD }}" | sql -S admin/"${{ secrets.ADB_ADMIN_PASSWORD }}"@"${{ secrets.ADB_CONNECTION_STRING }}" @test.sql ?TNS_ADMIN=wallet > test_output.txt
+          export TNS_ADMIN=$PWD/wallet
+          sql -S admin/"${ADMIN_PASSWORD}"@"${CONNECTION_STRING}" @test.sql > test_output.txt
           cat test_output.txt
 
       - name: Cleanup
