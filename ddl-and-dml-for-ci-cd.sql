@@ -1,5 +1,5 @@
 CREATE TABLE customers (
-    id NUMBER PRIMARY KEY generated always as identity(1,1),
+    id NUMBER PRIMARY KEY generated always as identity,
     name VARCHAR2(100),
     created DATE DEFAULT SYSDATE
 );
