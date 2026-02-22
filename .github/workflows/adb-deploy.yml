@@ -1,8 +1,8 @@
 name: Oracle Autonomous DB CI/CD Pipeline (19c Client)
 
 on:
-  push: 
-  pull_request: 
+  push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -20,15 +20,13 @@ jobs:
 
       - name: Install Oracle Instant Client 19c & SQLcl
         run: |
-          # Download Instant Client Basic Light 19.24 (long-term support, stable for ADB)
-          curl -o instantclient.zip https://download.oracle.com/otn_software/linux/instantclient/1924000/instantclient-basiclite-linux.x64-19.24.0.0.0dbru.zip
+          curl -L -o instantclient.zip https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
-          # Download SQLcl 19.4 (compatible with 19c client)
-          curl -o sqlcl.zip https://download.oracle.com/otn_software/java/sqlcl/sqlcl-19.4.0.zip
+          curl -L -o sqlcl.zip https://download.oracle.com/otn_software/java/sqlcl/sqlcl-24.1.0.zip
           unzip sqlcl.zip
-          # Set PATH correctly for 19c
-          export LD_LIBRARY_PATH=$PWD/instantclient_19_24:$LD_LIBRARY_PATH
-          export PATH=$PWD/instantclient_19_24:$PWD/sqlcl/bin:$PATH
+          export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
+          export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
+          sql -v   # Print SQLcl version for debug
 
       - name: Decode and unzip ADB wallet
         run: |
