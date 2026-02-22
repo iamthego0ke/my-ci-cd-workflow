@@ -5,4 +5,5 @@ CREATE TABLE customers (
 );
 INSERT INTO customers (name) VALUES ('Test User');
 INSERT INTO customers (name) VALUES ('Test User2');
+INSERT INTO customers (name) VALUES ('Test User3');
 COMMIT;
