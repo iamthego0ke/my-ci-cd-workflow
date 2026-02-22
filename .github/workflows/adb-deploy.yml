@@ -24,17 +24,16 @@ jobs:
             https://download.oracle.com/otn_software/linux/instantclient/1922000/instantclient-basiclite-linux.x64-19.22.0.0.0dbru.zip
           unzip instantclient.zip
 
-          # FIXED: Swapped broken github.io link for official Oracle latest link
+          # CORRECTED: Swapped broken link for official Oracle SQLcl latest link
           curl -L -o sqlcl.zip \
             https://download.oracle.com/otn_software/java/sqldev/sqlcl-latest.zip
           unzip sqlcl.zip
 
-          # FIXED: Using GITHUB_ENV so PATH and LD_LIBRARY_PATH persist to later steps
+          # CORRECTED: Using GITHUB_ENV so the path persists to the 'Deploy' and 'Smoke test' steps
           echo "LD_LIBRARY_PATH=$PWD/instantclient_19_22" >> $GITHUB_ENV
           echo "PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH" >> $GITHUB_ENV
 
           ls -lh sqlcl.zip
-          # Testing version in current step
           ./sqlcl/bin/sql -v
 
       - name: Decode and unzip ADB wallet
