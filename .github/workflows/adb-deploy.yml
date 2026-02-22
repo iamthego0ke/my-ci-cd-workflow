@@ -50,6 +50,9 @@ jobs:
         run: |
           set -e
           echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
+          file wallet.zip
+          ls -lh wallet.zip
+          
           unzip wallet.zip -d wallet
 
       # -------------------------------
