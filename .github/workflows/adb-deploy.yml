@@ -2,7 +2,7 @@ name: Oracle Autonomous DB CI/CD Pipeline (Fixed)
 
 on:
   push:
-    branches: [ main ]
+    branches: 
   pull_request:
   workflow_dispatch:
 
