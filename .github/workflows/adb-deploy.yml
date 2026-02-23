@@ -64,7 +64,7 @@ jobs:
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
           
-          sql -cloudconfig wallet.zip admin/"$ADMIN_PASSWORD"@"myautodb_high@"$GITHUB_WORKSPACE/ddl.sql"
+          sql -cloudconfig wallet.zip admin/"$ADMIN_PASSWORD"@myautodb_high@"$GITHUB_WORKSPACE/ddl.sql"
 
       # -------------------------------
       # Smoke Test
