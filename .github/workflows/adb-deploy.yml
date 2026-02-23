@@ -57,16 +57,14 @@ jobs:
       # -------------------------------
       - name: Deploy schema
         env:
-          CONNECTION_STRING: ${{ secrets.ADB_CONNECTION_STRING }}
           ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
         run: |
           set -e
 
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
-          export TNS_ADMIN=$PWD/wallet
-
-          sql -S admin/"$ADMIN_PASSWORD"@"$CONNECTION_STRING" @"$GITHUB_WORKSPACE/ddl.sql"
+          
+          sql -cloudconfig wallet.zip admin/"$ADMIN_PASSWORD"@"myautodb_high@"$GITHUB_WORKSPACE/ddl.sql"
 
       # -------------------------------
       # Smoke Test
