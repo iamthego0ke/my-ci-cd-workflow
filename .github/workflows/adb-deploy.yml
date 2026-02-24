@@ -55,7 +55,7 @@ jobs:
       # -------------------------------
       # Deploy Schema
       # -------------------------------
-      - name: Deploy schema
+      - name: Deploy ddl
         env:
           ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
         run: |
@@ -63,10 +63,10 @@ jobs:
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
           export PATH=$PWD/instantclient_19_22:$PWD/sqlcl/bin:$PATH
 
-          CONNECT_STRING="admin/${ADMIN_PASSWORD}@myautodb_high"
-
-          sql -cloudconfig wallet.zip "$CONNECT_STRING" <<EOF
-          "@$GITHUB_WORKSPACE/ddl.sql"
+          #Tell Oracle where wallet files are
+          export TNS_ADMIN=$PWD/wallet
+          sql admin/${ADMIN_PASSWORD}@myautodb_high <<EOF
+          @ddl.sql
           exit
           EOF
       # -------------------------------
