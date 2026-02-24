@@ -57,7 +57,7 @@ jobs:
       # -------------------------------
       - name: Deploy ddl
         env:
-          ADMIN_PASSWORD: ${{ secrets.ADB_ADMIN_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ORACLEDBCONN }}
         run: |
           set -e
           export LD_LIBRARY_PATH=$PWD/instantclient_19_22:$LD_LIBRARY_PATH
