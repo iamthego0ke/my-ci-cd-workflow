@@ -1,0 +1,63 @@
+name: Database Deployment
+
+on:
+  push:
+    branches:
+      - feature/*
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choose environment'
+        required: true
+        default: 'prod'
+
+jobs:
+
+  deploy-test:
+    if: startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-latest
+    environment: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup wallet
+        run: |
+          echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
+          unzip wallet.zip -d wallet
+          export TNS_ADMIN=$PWD/wallet
+
+      - name: Deploy to TEST
+        run: |
+          sql admin/${{ secrets.ADB_ADMIN_PASSWORD }}@${{ secrets.SERVICE_NAME }} @migrations/newtab.sql
+
+
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup wallet
+        run: |
+          echo "${{ secrets.ADB_WALLET_BASE64 }}" | base64 -d > wallet.zip
+          unzip wallet.zip -d wallet
+          export TNS_ADMIN=$PWD/wallet
+
+      - name: Create Restore Point (Safety)
+        run: |
+          sql admin/${{ secrets.ADB_ADMIN_PASSWORD }}@${{ secrets.SERVICE_NAME }} <<EOF
+          BEGIN
+            DBMS_CLOUD_ADMIN.CREATE_AUTONOMOUS_DATABASE_RESTORE_POINT(
+              restore_point_name => 'PRE_PROD_DEPLOY_' || TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+            );
+          END;
+          /
+          exit
+          EOF
+
+      - name: Deploy to PROD
+        run: |
+          sql admin/${{ secrets.ADB_ADMIN_PASSWORD }}@${{ secrets.SERVICE_NAME }} @migrations/newtab.sql
